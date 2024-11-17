@@ -12,9 +12,22 @@ import { Breadcrumb, BreadcrumbList } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { useParams } from "next/navigation";
+import { useCustomer } from "@/hooks/useCustomer";
 
 export default function DocumentPage() {
 	const { id } = useParams();
+	const customerId = Array.isArray(id) ? id[0] : id;
+	const { customer, isLoading } = useCustomer(customerId??'');
+
+	if (isLoading) {
+		return (
+			<SidebarInset>
+				<div className="flex h-screen items-center justify-center">
+					<p className="text-muted-foreground">Carregando processo...</p>
+				</div>
+			</SidebarInset>
+		);
+	}
 
 	return (
 		<SidebarInset>
@@ -33,14 +46,14 @@ export default function DocumentPage() {
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className="hidden md:block" />
 							<BreadcrumbItem>
-								<BreadcrumbPage>{id}</BreadcrumbPage>
+								<BreadcrumbPage>{customer?.data?.name || id}</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>
 				</div>
 			</header>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-				<DocumentViewer />
+				<DocumentViewer customer={customer} />
 			</div>
 		</SidebarInset>
 	);

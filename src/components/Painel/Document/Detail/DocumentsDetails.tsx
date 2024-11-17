@@ -32,8 +32,13 @@ import { DocumentProgress } from "./DocumentProgress";
 import { ModelCebasAssistencia, ModelCebasCts, ModelCebasIlpi, ModelCebasSaude60Sus, ModelCebasSaudePromocaoASaude } from "./data";
 import { DocumentContent } from "./DocumentContent";
 import { PDFViewer } from "./PDFViewer";
+import type { Customer } from '@/types/customer';
 
-export default function DocumentViewer() {
+interface DocumentViewerProps {
+	customer?: Customer;
+}
+
+export default function DocumentViewer({ customer }: DocumentViewerProps) {
 	const [documents, setDocuments] = useState<Document[]>([]);
 	const documentType: string = "saude-promocao";
   const [currentPdfUrl, setCurrentPdfUrl] = useState<string>('');
@@ -75,20 +80,20 @@ export default function DocumentViewer() {
 
 	const [currentStep, setCurrentStep] = useState(0);
 	const [clientData, setClientData] = useState<ClientData>({
-		nomeCliente: "",
-		cnpj: "",
-		email: "",
-		responsavel: "",
+		nomeCliente: customer?.data?.nomeCliente || "",
+		cnpj: customer?.data?.cnpj || "",
+		email: customer?.data?.email || "",
+		responsavel: customer?.data?.responsavel || "",
 		siscebas: {
-			login: "",
-			senha: "",
+			login: customer?.data?.siscebas?.login || "",
+			senha: customer?.data?.siscebas?.senha || "",
 		},
-		numeroCNES: "",
+		numeroCNES: customer?.data?.numeroCNES || "",
 	});
 	const [observations, setObservations] = useState<string[]>(
 		Array(documents.length).fill(""),
 	);
-	const [status, setStatus] = useState<DocumentStatus>("Pendente de Analise");
+	const [status, setStatus] = useState<DocumentStatus>(customer?.status || "Documentos Pedentes");
 
 	// Add new function to check if current step is complete
 	const isCurrentStepComplete = (step: number): boolean => {
