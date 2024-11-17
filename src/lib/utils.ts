@@ -5,9 +5,11 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(_date: Date | string): string {
+	const date = new Date(_date)
+
 	return new Intl.DateTimeFormat("pt-BR", {
 		dateStyle: "short",
 		timeStyle: "short",
-	}).format(date);
+	})?.format(date);
 }

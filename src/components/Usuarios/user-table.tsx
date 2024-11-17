@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
 	Table,
 	TableBody,
@@ -14,6 +13,7 @@ import { Edit2, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import type { User } from "@/types/user";
 import { Card } from "../ui/card";
+import { useUsers } from "@/hooks/useUsers";
 
 interface UserTableProps {
 	filters: {
@@ -24,15 +24,25 @@ interface UserTableProps {
 }
 
 export function UserTable({ filters, onEdit }: UserTableProps) {
-	const [users, setUsers] = useState<User[]>([]); // Aqui você deve integrar com sua API
+	const { users, isLoading } = useUsers();
 
-	const filteredUsers = users.filter((user) => {
+	const filteredUsers = users?.filter((user) => {
 		const emailMatch = user.email
 			.toLowerCase()
 			.includes(filters.email.toLowerCase());
-		const typeMatch = !filters.type || user.type === filters.type;
+		const typeMatch = filters.type === "ALL" || user.userType === filters.type;
 		return emailMatch && typeMatch;
-	});
+	}) ?? [];
+
+	if (isLoading) {
+		return (
+			<Card className="min-h-[500px]">
+				<div className="flex items-center justify-center h-[500px]">
+					<p className="text-muted-foreground">Carregando usuários...</p>
+				</div>
+			</Card>
+		);
+	}
 
 	return (
 		<Card className="min-h-[500px]">
@@ -50,9 +60,11 @@ export function UserTable({ filters, onEdit }: UserTableProps) {
 						<TableRow>
 							<TableCell colSpan={4} className="h-[400px] text-center">
 								<div className="flex flex-col items-center justify-center space-y-2">
-									<p className="text-muted-foreground text-lg">Nenhum usuário encontrado</p>
+									<p className="text-muted-foreground text-lg">
+										Nenhum usuário encontrado
+									</p>
 									<p className="text-sm text-muted-foreground">
-										{users.length === 0 
+										{!users?.length
 											? "Não há usuários cadastrados no sistema"
 											: "Nenhum usuário corresponde aos filtros aplicados"}
 									</p>
@@ -63,10 +75,14 @@ export function UserTable({ filters, onEdit }: UserTableProps) {
 						filteredUsers.map((user) => (
 							<TableRow key={user.id}>
 								<TableCell>{user.email}</TableCell>
-								<TableCell>{user.type}</TableCell>
+								<TableCell>{user.userType}</TableCell>
 								<TableCell>{formatDate(user.createdAt)}</TableCell>
 								<TableCell className="space-x-2">
-									<Button variant="ghost" size="sm" onClick={() => onEdit(user)}>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => onEdit(user)}
+									>
 										<Edit2 className="h-4 w-4" />
 									</Button>
 									<Button

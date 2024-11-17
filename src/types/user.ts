@@ -3,6 +3,9 @@ export type UserType = "ADMIN" | "HEALTH_PROMOTION" | "SUS" | "ASSISTANCE" | "IL
 export interface User {
 	id: string;
 	email: string;
-	type: UserType;
+	userType: UserType;
+	password: string;
+	active: boolean;
 	createdAt: Date;
+	updatedAt: Date;
 }

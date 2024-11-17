@@ -27,42 +27,7 @@ import { Eye, Filter, CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { Card } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
-
-type Document = {
-  id: number
-  name: string
-  requestDate: Date
-  sendDate: Date
-  timeInStatus: string
-  status: string
-}
-
-const initialDocuments: Document[] = [
-  {
-    id: 1,
-    name: "João Silva",
-    requestDate: new Date("2023-05-01"),
-    sendDate: new Date("2023-05-02"),
-    timeInStatus: "1 dia",
-    status: "Documentos Pendentes"
-  },
-  {
-    id: 2,
-    name: "Maria Santos",
-    requestDate: new Date("2023-05-03"),
-    sendDate: new Date("2023-05-04"),
-    timeInStatus: "2 dias",
-    status: "Em Processamento"
-  },
-  {
-    id: 3,
-    name: "Carlos Oliveira",
-    requestDate: new Date("2023-05-05"),
-    sendDate: new Date("2023-05-07"),
-    timeInStatus: "3 dias",
-    status: "Concluído"
-  },
-]
+import { useCustomers } from '@/hooks/useCustomers'
 
 type FilterState = {
   name: string
@@ -73,7 +38,7 @@ type FilterState = {
 }
 
 export default function AdvancedDocumentTable() {
-  const [documents] = useState<Document[]>(initialDocuments)
+  const { customers, isLoading } = useCustomers()
   const [filters, setFilters] = useState<FilterState>({
     name: '',
     requestDate: null,
@@ -85,19 +50,23 @@ export default function AdvancedDocumentTable() {
   const itemsPerPage = 10
 
   const filteredDocuments = useMemo(() => {
-    return documents.filter(doc => 
-      doc.name.toLowerCase().includes(filters.name.toLowerCase()) &&
-      (!filters.requestDate || doc.requestDate.toDateString() === filters.requestDate.toDateString()) &&
-      (!filters.sendDate || doc.sendDate.toDateString() === filters.sendDate.toDateString()) &&
-      doc.timeInStatus.toLowerCase().includes(filters.timeInStatus.toLowerCase()) &&
-      (filters.status.length === 0 || filters.status.includes(doc.status))
-    )
-  }, [documents, filters])
+    if (!customers) return []
+    
+    return customers.filter(doc => {
+      const name = doc.data.name || ''
+      const requestDate = new Date(doc.createdAt)
+      const sendDate = new Date(doc.sendedAt)
+      
+      return name.toLowerCase().includes(filters.name.toLowerCase()) &&
+        (!filters.requestDate || requestDate.toDateString() === filters.requestDate.toDateString()) &&
+        (!filters.sendDate || sendDate.toDateString() === filters.sendDate.toDateString()) &&
+        (filters.status.length === 0 || filters.status.includes(doc.status))
+    })
+  }, [customers, filters])
 
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filteredDocuments.slice(indexOfFirstItem, indexOfLastItem)
-
   const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage)
 
   const handleFilterChange = (key: keyof FilterState, value: string | Date | string[] | undefined) => {
@@ -105,9 +74,18 @@ export default function AdvancedDocumentTable() {
     setCurrentPage(1)
   }
 
-  const statusOptions = Array.from(new Set(documents.map(doc => doc.status)))
+  const statusOptions = customers ? Array.from(new Set(customers.map(doc => doc.status))) : []
+  const router = useRouter()
 
-  const router = useRouter();
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <p>Carregando...</p>
+        </div>
+      </Card>
+    )
+  }
 
   return (
     <Card className="p-6">
@@ -206,10 +184,10 @@ export default function AdvancedDocumentTable() {
                   <Eye className="h-4 w-4" />
                 </Button>
               </TableCell>
-              <TableCell>{doc.name}</TableCell>
-              <TableCell>{format(doc.requestDate, "dd/MM/yyyy")}</TableCell>
-              <TableCell>{format(doc.sendDate, "dd/MM/yyyy")}</TableCell>
-              <TableCell>{doc.timeInStatus}</TableCell>
+              <TableCell>{doc.data.name}</TableCell>
+              <TableCell>{format(new Date(doc.createdAt), "dd/MM/yyyy")}</TableCell>
+              <TableCell>{format(new Date(doc.sendedAt), "dd/MM/yyyy")}</TableCell>
+              <TableCell>{doc.lastStatusUpdatedAt}</TableCell>
               <TableCell>
                 <span className={`px-2 py-1 rounded-full text-xs font-semibold
                   ${doc.status === 'Documentos Pendentes' ? 'bg-yellow-200 text-yellow-800' :

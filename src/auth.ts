@@ -20,6 +20,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: {
     signIn: '/login',
   },
+  session: {
+    maxAge: 7 * 24 * 60 * 60, // 7 dias em segundos
+  },
   providers: [
     Credentials({
       credentials: {

@@ -32,7 +32,9 @@ export default function LoginPage() {
 
 	useEffect(() => {
 		if (session?.user) {
-			console.log("session", session.user);
+
+			localStorage.setItem("access_token", session.user.access_token);
+			
 			if(session.user.userType === "ADMIN") {
 				router.push("/painel");
 				router.refresh();

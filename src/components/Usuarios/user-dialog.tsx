@@ -27,6 +27,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import type { User } from "@/types/user";
+import { useUsers } from "@/hooks/useUsers";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
 	email: z.string().email("Email inválido"),
@@ -41,21 +43,49 @@ interface UserDialogProps {
 }
 
 export function UserDialog({ user, open, onOpenChange }: UserDialogProps) {
+	const { createUser, updateUser } = useUsers()
+	const { toast } = useToast()
+
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			email: user?.email ?? "",
 			password: "",
-			type: user?.type ?? "ADMIN",
+			type: user?.userType ?? "ADMIN",
 		},
 	});
 
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
 		try {
-			// Implementar lógica de criação/edição
-			onOpenChange(false);
+			if (user) {
+				await updateUser(user.id, {
+					email: values.email,
+					password: values.password || undefined, // Only send if password was changed
+					userType: values.type
+				})
+				toast({
+					title: "Usuário atualizado",
+					description: "O usuário foi atualizado com sucesso.",
+				})
+			} else {
+				await createUser({
+					email: values.email,
+					password: values.password,
+					userType: values.type
+				})
+				toast({
+					title: "Usuário criado",
+					description: "O usuário foi criado com sucesso.",
+				})
+			}
+			onOpenChange(false)
 		} catch (error) {
-			console.error(error);
+			toast({
+				title: "Erro",
+				description: "Ocorreu um erro ao salvar o usuário.",
+				variant: "destructive",
+			})
+			console.error(error)
 		}
 	};
 

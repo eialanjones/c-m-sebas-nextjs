@@ -1,6 +1,7 @@
 "use client";
 
 import type * as React from "react";
+import { useSession } from "next-auth/react";
 import {
 	AudioWaveform,
 	Command,
@@ -25,28 +26,6 @@ import { NavProjects } from "./nav-projects";
 
 // This is sample data.
 const data = {
-	user: {
-		name: "shadcn",
-		email: "m@example.com",
-		avatar: "/avatars/shadcn.jpg",
-	},
-	teams: [
-		{
-			name: "Acme Inc",
-			logo: GalleryVerticalEnd,
-			plan: "Enterprise",
-		},
-		{
-			name: "Acme Corp.",
-			logo: AudioWaveform,
-			plan: "Startup",
-		},
-		{
-			name: "Evil Corp.",
-			logo: Command,
-			plan: "Free",
-		},
-	],
 	navMainClient: [
 		{
 			name: "Meus Documentos",
@@ -81,29 +60,14 @@ const data = {
 			],
 		},
 	],
-	// projects: [
-	// 	{
-	// 		name: "Design Engineering",
-	// 		url: "#",
-	// 		icon: Frame,
-	// 	},
-	// 	{
-	// 		name: "Sales & Marketing",
-	// 		url: "#",
-	// 		icon: PieChart,
-	// 	},
-	// 	{
-	// 		name: "Travel",
-	// 		url: "#",
-	// 		icon: Map,
-	// 	},
-	// ],
 };
 
 export function AppSidebar({
 	type = "system",
 	...props
 }: React.ComponentProps<typeof Sidebar> & { type: "client" | "system" }) {
+	const { data: session } = useSession();
+
 	return (
 		<Sidebar collapsible="icon" {...props}>
 			<SidebarHeader>
@@ -116,7 +80,7 @@ export function AppSidebar({
 				{type === "client" && <NavProjects projects={data.navMainClient} />}
 			</SidebarContent>
 			<SidebarFooter>
-				<NavUser user={data.user} />
+				{session?.user && <NavUser user={session.user} />}
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>
