@@ -1,35 +1,97 @@
-import NextAuth from "next-auth"
+import NextAuth, { type User } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-// Your own logic for dealing with plaintext password strings; be careful!
-//import { saltAndHashPassword } from "@/utils/password"
+import api from "./utils/api"
+
+type LoginResponse = {
+  data: {
+    access_token: string
+    user: {
+      id: number
+      userType: string
+      email: string
+      active: boolean
+      createdAt: string
+      updatedAt: string
+    }
+  }
+}
  
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  pages: {
+    signIn: '/login',
+  },
   providers: [
     Credentials({
-      // You can specify which fields should be submitted, by adding keys to the `credentials` object.
-      // e.g. domain, username, password, 2FA token, etc.
       credentials: {
         email: {},
         password: {},
       },
       authorize: async (credentials) => {
-        let user = null
- 
-        // logic to salt and hash password
-        //const pwHash = saltAndHashPassword(credentials.password)
- 
-        // logic to verify if the user exists
-        //user = await getUserFromDb(credentials.email, pwHash)
- 
-        if (!user) {
-          // No user found, so this is their first attempt to login
-          // meaning this is also the place you could do registration
-          throw new Error("User not found.")
+        const loginResponse = await api.post("/auth/login", {
+          email: credentials.email,
+          password: credentials.password,
+        }) as LoginResponse
+
+        if (!loginResponse?.data?.user) {
+          throw new Error("Credenciais inválidas.")
         }
- 
-        // return user object with their profile data
-        return user
+
+        const user = loginResponse.data.user;
+        return {
+          id: user.id.toString(),
+          userType: user.userType,
+          email: user.email,
+          active: user.active,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          access_token: loginResponse.data.access_token
+        }
       },
     }),
   ],
+  callbacks: {
+    session: ({ session, token }) => {
+      return {
+        ...session,
+        user: {
+          id: token.id,
+          userType: token.userType,
+          email: token.email,
+          active: token.active,
+          createdAt: token.createdAt,
+          updatedAt: token.updatedAt,
+          access_token: token.access_token
+        } as User
+      }
+    },
+    jwt: ({ token, user }) => {
+      if (user) {
+        return {
+          ...token,
+          id: user.id,
+          userType: user.userType,
+          email: user.email,
+          active: user.active,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          access_token: user.access_token
+        }
+      }
+      return token
+    }
+  }
 })
+
+declare module "next-auth" {
+  interface Session {
+    user: User
+  }
+
+  interface User {
+    userType: string
+    active: boolean
+    createdAt: string
+    updatedAt: string
+    access_token: string
+  }
+}

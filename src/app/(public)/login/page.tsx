@@ -1,13 +1,14 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
 	const router = useRouter();
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
+	const { data: session, status } = useSession()
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -27,10 +28,19 @@ export default function LoginPage() {
 			setError("Credenciais inválidas");
 			return;
 		}
-
-		router.push("/painel");
-		router.refresh();
 	}
+
+	useEffect(() => {
+		if (session?.user) {
+			console.log("session", session.user);
+			if(session.user.userType === "ADMIN") {
+				router.push("/painel");
+				router.refresh();
+			} else {
+				router.push("/documentos");
+			}
+		}
+	}, [session, router]);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat" 

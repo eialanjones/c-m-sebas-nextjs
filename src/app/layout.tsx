@@ -4,6 +4,7 @@ import "./globals.css";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
+import { SessionProvider } from "next-auth/react";
 
 const geistSans = localFont({
 	src: "./fonts/GeistVF.woff",
@@ -40,7 +41,9 @@ export default function RootLayout({
            */
           routerConfig={extractRouterConfig(ourFileRouter)}
         />
-				{children}
+				<SessionProvider>
+					{children}
+				</SessionProvider>
 			</body>
 		</html>
 	);
