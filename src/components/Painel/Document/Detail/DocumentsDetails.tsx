@@ -93,7 +93,7 @@ export default function DocumentViewer({ customer }: DocumentViewerProps) {
 	const [observations, setObservations] = useState<string[]>(
 		Array(documents.length).fill(""),
 	);
-	const [status, setStatus] = useState<DocumentStatus>(customer?.status || "Documentos Pedentes");
+	const [status, setStatus] = useState<DocumentStatus>(customer?.status as DocumentStatus || "Documentos Pendentes");
 
 	// Add new function to check if current step is complete
 	const isCurrentStepComplete = (step: number): boolean => {
