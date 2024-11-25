@@ -16,7 +16,7 @@ export function DocumentProgress({
 	completedSteps,
 }: DocumentProgressProps) {
 	return (
-		<div className="md:w-6/12 rounded-lg bg-gray-100 md:p-4 pl-1 pt-2 h-full">
+		<div className="md:w-6/12 max-w-[350px] rounded-lg bg-gray-100 md:p-4 pl-1 pt-2 h-full">
 			<h3 className="mb-4 text-lg font-semibold hidden md:block">Documentos</h3>
 			<ScrollArea className="h-[calc(100vh-10rem)]">
 					{documents.map((doc, index) => (

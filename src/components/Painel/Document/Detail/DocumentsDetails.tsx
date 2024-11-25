@@ -15,142 +15,178 @@ export interface Document {
 	url: string;
 	fileKey: string;
 	observation: string;
-	checklist?: {
-		name: string;
-		value: boolean;
-		description: string;
-	}[];
+	checklist?: Checklist[];
+}
+
+export type Checklist = {
+	name: string;
+	value: boolean;
+	description: string;
 }
 
 import { useEffect, useState } from "react";
 import { DocumentProgress } from "./DocumentProgress";
-import {
-	ModelCebasAssistencia,
-	ModelCebasCts,
-	ModelCebasIlpi,
-	ModelCebasSaude60Sus,
-	ModelCebasSaudePromocaoASaude,
-} from "./data";
 import { DocumentContent } from "./DocumentContent";
 import { PDFViewer } from "./PDFViewer";
 import type { Customer } from "@/types/customer";
 import type { DOCUMENT_STATUS } from "../../DocumentTable";
+import { clientApi } from "@/utils/api";
+import { useToast } from "@/hooks/use-toast";
+import type { KeyedMutator } from "swr";
 
 interface DocumentViewerProps {
 	customer?: Customer;
+	mutate?: KeyedMutator<Customer>;
 }
 
-export default function DocumentViewer({ customer }: DocumentViewerProps) {
-	const [documents, setDocuments] = useState<Document[]>([]);
-	const documentType: string = "saude-promocao";
-	const [currentPdfUrl, setCurrentPdfUrl] = useState<string>("");
+export default function DocumentViewer({ customer, mutate }: DocumentViewerProps) {
+	const { toast } = useToast();
 
 	// Move checkedItems state after documents are set
-	const [checkedItems, setCheckedItems] = useState<
-		Record<number, Record<string, boolean>>
-	>({});
-
-	useEffect(() => {
-		let selectedDocuments: Document[] = [];
-
-		switch (documentType) {
-			case "saude-promocao":
-				selectedDocuments = ModelCebasSaudePromocaoASaude;
-				break;
-			case "saude-60sus":
-				selectedDocuments = ModelCebasSaude60Sus;
-				break;
-			case "assistencia":
-				selectedDocuments = ModelCebasAssistencia;
-				break;
-			case "ilpi":
-				selectedDocuments = ModelCebasIlpi;
-				break;
-			case "cts":
-				selectedDocuments = ModelCebasCts;
-				break;
-			default:
-				selectedDocuments = [];
-		}
-
-		setDocuments(selectedDocuments);
-		// Initialize checkedItems for each document
-		setCheckedItems(
-			Object.fromEntries(selectedDocuments.map((_, index) => [index, {}])),
-		);
-	}, []);
+	const [checkedItems, setCheckedItems] = useState<Checklist[]>([]);
 
 	const [currentStep, setCurrentStep] = useState(0);
 	const [clientData, setClientData] = useState<ClientData>(customer?.data ?? []);
-	const [observations, setObservations] = useState<string[]>(
-		Array(documents.length).fill(""),
-	);
+	const [observations, setObservations] = useState<string>("");
 
 	const [status, setStatus] = useState<DOCUMENT_STATUS | CUSTOMER_DATA_STATUS>(
-		(customer?.data?.find(field => field.name === 'status')?.value as DOCUMENT_STATUS | CUSTOMER_DATA_STATUS) || 
-		CUSTOMER_DATA_STATUS.WAITING_SUBMISSION
+		(customer?.dataStatus) || 
+		CUSTOMER_DATA_STATUS.PENDING_SUBMISSION
 	);
 
 	// Add new function to check if current step is complete
 	const isCurrentStepComplete = (step: number): boolean => {
 		if (step === 0) return true; // First step (client data) is always valid
 
-		const currentDocument = documents[step];
-		const currentCheckedItems = checkedItems[step];
-
+		const currentDocument = customer?.documents?.[step];
 		return (
 			currentDocument?.checklist?.every(
-				(item) => currentCheckedItems?.[item.name] === true,
+				(item) => item.value,
 			) || false
 		);
 	};
 
-	const handleReturnToClient = () => setCurrentStep(0);
-	const handleConcludeAnalysis = () => setCurrentStep(0);
+	const handleStatusChange = async (status: CUSTOMER_DATA_STATUS | DOCUMENT_STATUS, document?: Document) => {
+		setStatus(status);
 
-	// Modify DocumentProgress props to include validation
+		if(currentStep === 0) {
+			await clientApi.patch(`/customers/${customer?.id}`, {
+				dataStatus: status,
+				dataObservation: observations,
+			});
+		}else{
+			await clientApi.patch(`/customers/${customer?.id}`, {
+				status: status,
+				documents: customer?.documents?.map((doc) => {
+					if(doc.name === document?.name) {
+						return {
+							...doc,
+							status: status,
+							observation: observations?.length > 0 ? observations : null,
+						};
+					}
+					return doc;
+				}),
+			});
+		}
+
+		mutate?.();
+
+		toast({
+			title: "Sucesso",
+			description: "Status alterado com sucesso",
+		});
+	};
+
+	useEffect(() => {
+		if(customer?.dataStatus && currentStep !== 0) {
+			setStatus(customer.status as DOCUMENT_STATUS);
+			
+			setCheckedItems(customer?.documents?.[currentStep]?.checklist?.map((item) => ({
+				...item,
+				value: item.value,
+			})) ?? []);
+
+			setObservations(customer?.documents?.[currentStep]?.observation ?? "");
+		} else {
+			setStatus(customer?.dataStatus || CUSTOMER_DATA_STATUS.PENDING_SUBMISSION);
+			setObservations(customer?.dataObservation ?? "");
+		}
+	}, [customer, currentStep]);
+
+	const handleCheckChange = async (item: Checklist, checked: boolean) => {
+		setCheckedItems((prev) => {
+			const exists = prev.some(prevItem => prevItem.name === item.name);
+			if (exists) {
+				return prev.map(prevItem => 
+					prevItem.name === item.name ? {...item} : prevItem
+				);
+			}
+			return [...prev, item];
+		});
+		await clientApi.patch(`/customers/${customer?.id}`, {
+			documents: customer?.documents?.map((doc) => {
+				if(doc.name === customer?.documents?.[currentStep]?.name) {
+					return {
+						...doc,
+						checklist: doc.checklist?.map((_item) => _item.name === item.name ? { ..._item, value: checked } : _item),
+					};
+				}
+				return doc;
+			}),
+		});
+
+		mutate?.();
+
+		toast({
+			title: "Sucesso",
+			description: "Item alterado com sucesso",
+		});
+	};
+
 	return (
 		<div className="flex h-full">
 			<DocumentProgress
-				documents={documents}
+				documents={customer?.documents ?? []}
 				currentStep={currentStep}
 				onStepChange={setCurrentStep}
-				completedSteps={Array(documents.length)
+				completedSteps={Array(customer?.documents?.length ?? 0)
 					.fill(0)
 					.map((_, index) => isCurrentStepComplete(index))}
 			/>
-			{currentStep !== 0 && (
-				<div className="flex md:w-6/12 bg-neutral-700">
-					<PDFViewer pdfUrl={currentPdfUrl} />
-				</div>
-			)}
-			<DocumentContent
-				currentStep={currentStep}
-				documents={documents}
-				clientData={clientData}
-				setClientData={setClientData}
-				checkedItems={checkedItems}
-				setCheckedItems={setCheckedItems}
-				observations={observations}
-				setObservations={setObservations}
-				onReturnToClient={handleReturnToClient}
-				onConcludeAnalysis={handleConcludeAnalysis}
-				status={status}
-				onStatusChange={setStatus}
-			/>
+			<div className={'flex flex-col-reverse w-full flex-col p-4 pr-0 w-full self-start'}>
+				{(currentStep !== 0 && customer?.documents?.[currentStep]?.url) && (
+					<div className="flex w-full bg-neutral-700 mt-6">
+						<PDFViewer pdfUrl={customer.documents[currentStep].url} />
+					</div>
+				)}
+				<DocumentContent
+					currentStep={currentStep}
+					documents={customer?.documents ?? []}
+					clientData={clientData}
+					setClientData={setClientData}
+					checkedItems={checkedItems}
+					setCheckedItems={handleCheckChange}
+					observations={observations}
+					setObservations={setObservations}
+					status={status}
+					onStatusChange={handleStatusChange}
+					customer={customer}
+				/>
+			</div>
 		</div>
 	);
 }
 
 export enum CUSTOMER_DATA_STATUS {
-	WAITING_SUBMISSION = 'WAITING_SUBMISSION',
+	PENDING_SUBMISSION = 'PENDING_SUBMISSION',
 	PENDING_ANALYSIS = 'PENDING_ANALYSIS',
-	WAITING_CORRECTION = 'WAITING_CORRECTION',
+	PENDING_CORRECTION = 'PENDING_CORRECTION',
 	VALIDATED = 'VALIDATED'
   }
   
   export const CUSTOMER_DATA_STATUS_METADATA = {
-	[CUSTOMER_DATA_STATUS.WAITING_SUBMISSION]: {
+	[CUSTOMER_DATA_STATUS.PENDING_SUBMISSION]: {
 	  description: 'Aguardando Envio',
 	  longDescription: 'Dados ainda não foram enviados pelo cliente',
 	},
@@ -158,7 +194,7 @@ export enum CUSTOMER_DATA_STATUS {
 	  description: 'Pendente de Análise',
 	  longDescription: 'Dados enviados e aguardando análise técnica',
 	},
-	[CUSTOMER_DATA_STATUS.WAITING_CORRECTION]: {
+	[CUSTOMER_DATA_STATUS.PENDING_CORRECTION]: {
 	  description: 'Aguardando Correção',
 	  longDescription: 'Dados analisados e necessitam de correções',
 	},

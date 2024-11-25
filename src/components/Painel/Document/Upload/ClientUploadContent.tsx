@@ -8,6 +8,7 @@ import { FileUpload } from "./FileUpload";
 import type { Document, ClientData } from "../Detail/DocumentsDetails";
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { ClientUploadedFileData } from "uploadthing/types";
+import { Customer } from "@/types/customer";
 
 interface ClientUploadContentProps {
 	currentStep: number;
@@ -18,6 +19,7 @@ interface ClientUploadContentProps {
 	uploadedFiles: Document[];
 	onRemoveFile: (file: Document) => void;
 	onSubmit: () => void;
+	customer?: Customer;
 }
 
 export function ClientUploadContent({
@@ -29,6 +31,7 @@ export function ClientUploadContent({
 	uploadedFiles,
 	onRemoveFile,
 	onSubmit,
+	customer,
 }: ClientUploadContentProps) {
 	return (
 		<div className="flex w-full md:w-6/12 flex-col p-4 pr-0">
@@ -60,7 +63,7 @@ export function ClientUploadContent({
 
 			<footer className="flex justify-end space-x-2">
 				<Button onClick={onSubmit}>
-					{currentStep === uploadedFiles.length - 1 ? "Finalizar Envio" : "Salvar"}
+					{currentStep === (customer?.documents?.length ?? 1) - 1 ? "Finalizar Envio" : "Salvar"}
 				</Button>
 			</footer>
 		</div>

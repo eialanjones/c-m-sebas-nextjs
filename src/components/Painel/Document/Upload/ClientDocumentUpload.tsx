@@ -18,12 +18,12 @@ export default function ClientDocumentUpload() {
 	
 	const [currentStep, setCurrentStep] = useState(0);
 
-	const { customer } = useCustomer({userId: session?.user?.id ?? ''});
+	const { customer, mutate } = useCustomer({userId: session?.user?.id ?? ''});
 
 	const [clientData, setClientData] = useState<ClientData>(customer?.data ?? []);
 
 	const completedSteps = documents.map((doc, index) => {
-		if (index === 0 && Object.values(customer?.data ?? {}).length === Object.keys(clientData).length) return true;
+		if (index === 0 && customer?.data.every(field => field.value?.length > 0)) return true;
 		return !!doc.url;
 	});
 
@@ -48,7 +48,7 @@ export default function ClientDocumentUpload() {
 			}
 
 			const response = await clientApi.patch(`/customers/${customer?.id}`, payload);
-
+			mutate();
 			if (response.status !== 200) {
 				throw new Error('Falha ao enviar os dados');
 			}
@@ -80,7 +80,7 @@ export default function ClientDocumentUpload() {
 	const onRemoveFile = async (file: Document) => {
 		try {
 			setDocuments(prev => prev.map(doc => doc.name === file.name ? { ...doc, url: "", fileKey: "" } : doc));
-			console.log("file: ", file);
+
 			setFileToDelete(file);
 		} catch (error) {
 			toast({
@@ -108,6 +108,7 @@ export default function ClientDocumentUpload() {
 				uploadedFiles={documents.filter(doc => doc.name === documents[currentStep].name)}
 				onSubmit={handleSubmit}
 				onRemoveFile={onRemoveFile}
+				customer={customer}
 			/>
 		</div>
 	);

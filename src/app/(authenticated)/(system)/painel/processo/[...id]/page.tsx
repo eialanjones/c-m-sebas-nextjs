@@ -13,12 +13,11 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { useParams } from "next/navigation";
 import { useCustomer } from "@/hooks/useCustomer";
-import { useSession } from "next-auth/react";
 
 export default function DocumentPage() {
 	const { id } = useParams();
 	const customerId = Array.isArray(id) ? id[0] : id;
-	const { customer, isLoading } = useCustomer({customerId: customerId??''});
+	const { customer, isLoading, mutate } = useCustomer({customerId: customerId??''});
 
 	if (isLoading) {
 		return (
@@ -54,7 +53,7 @@ export default function DocumentPage() {
 				</div>
 			</header>
 			<div className="flex flex-1 flex-col gap-4 md:p-4 p-2">
-				<DocumentViewer customer={customer} />
+				<DocumentViewer customer={customer} mutate={mutate}/>
 			</div>
 		</SidebarInset>
 	);

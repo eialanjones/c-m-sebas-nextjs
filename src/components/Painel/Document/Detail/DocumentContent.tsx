@@ -6,7 +6,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ClientForm } from "./ClientForm";
 import { DocumentVerification } from "./DocumentVerification";
-import type { ClientData, CUSTOMER_DATA_STATUS, Document } from "./DocumentsDetails";
+import {
+	type Checklist,
+	type ClientData,
+	CUSTOMER_DATA_STATUS,
+	type Document,
+} from "./DocumentsDetails";
 import { DOCUMENT_STATUS } from "../../DocumentTable";
 import {
 	Select,
@@ -15,22 +20,20 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import type { Customer } from "@/types/customer";
 
 interface DocumentContentProps {
 	currentStep: number;
 	documents: Document[];
+	customer?: Customer;
 	clientData: ClientData;
 	setClientData: Dispatch<SetStateAction<ClientData>>;
-	checkedItems: Record<number, Record<string, boolean>>;
-	setCheckedItems: Dispatch<
-		SetStateAction<Record<number, Record<string, boolean>>>
-	>;
-	observations: string[];
-	setObservations: Dispatch<SetStateAction<string[]>>;
-	onReturnToClient: () => void;
-	onConcludeAnalysis: () => void;
+	checkedItems: Checklist[];
+	setCheckedItems: (item: Checklist, checked: boolean) => Promise<void>;
+	observations: string;
+	setObservations: Dispatch<SetStateAction<string>>;
 	status: DOCUMENT_STATUS | CUSTOMER_DATA_STATUS;
-	onStatusChange: (status: DOCUMENT_STATUS | CUSTOMER_DATA_STATUS) => void;
+	onStatusChange: (status: DOCUMENT_STATUS | CUSTOMER_DATA_STATUS, document?: Document) => void;
 }
 
 export function DocumentContent({
@@ -42,41 +45,67 @@ export function DocumentContent({
 	setCheckedItems,
 	observations,
 	setObservations,
-	onReturnToClient,
-	onConcludeAnalysis,
 	status,
 	onStatusChange,
+	customer,
 }: DocumentContentProps) {
-	const handleDownload = () => {
-		console.log("Baixando documento:", documents[currentStep]?.name);
+	const handleDownload = async () => {
+		const documento = documents[currentStep];
+		if (documento?.url) {
+			try {
+				// Fetch the file
+				const response = await fetch(documento.url);
+				const blob = await response.blob();
+				
+				// Create a blob URL
+				const blobUrl = window.URL.createObjectURL(blob);
+				
+				// Create and trigger download
+				const link = document.createElement('a');
+				link.href = blobUrl;
+				link.download = documento.name || 'document';
+				document.body.appendChild(link);
+				link.click();
+				
+				// Cleanup
+				document.body.removeChild(link);
+				window.URL.revokeObjectURL(blobUrl);
+			} catch (error) {
+				console.error('Error downloading file:', error);
+			}
+		} else {
+			console.warn('Document URL not available for:', documento?.name);
+		}
 	};
 
 	const renderActionButtons = () => {
 		const allChecked = Object.values(checkedItems[currentStep] || {}).every(
-			(value) => value === true
+			(value) => value === true,
 		);
 
 		switch (status) {
 			case DOCUMENT_STATUS.PENDING_DOCUMENTS:
 				return (
 					<>
-						<Button variant="outline" onClick={onReturnToClient}>
+						<Button variant="outline" onClick={() => onStatusChange(DOCUMENT_STATUS.PENDING_CORRECTION, documents[currentStep])}>
 							Solicitar Ajustes
 						</Button>
-						<Button onClick={onConcludeAnalysis}>Analisar</Button>
+						<Button onClick={() => onStatusChange(DOCUMENT_STATUS.PENDING_ANALYSIS, documents[currentStep])}>Analisar</Button>
 					</>
 				);
 
 			case DOCUMENT_STATUS.PENDING_ANALYSIS:
 				return (
 					<>
-						<Button variant="outline" onClick={onReturnToClient}>
+						<Button variant="outline" onClick={() => onStatusChange(DOCUMENT_STATUS.PENDING_CORRECTION, documents[currentStep])}>
 							Solicitar Ajustes
 						</Button>
-						<Button 
-							onClick={onConcludeAnalysis} 
+						<Button
+							onClick={() => onStatusChange(DOCUMENT_STATUS.PENDING_PROTOCOL, documents[currentStep])}
 							disabled={!allChecked}
-							title={!allChecked ? "Complete todos os itens antes de concluir" : ""}
+							title={
+								!allChecked ? "Complete todos os itens antes de concluir" : ""
+							}
 						>
 							Concluir Análise
 						</Button>
@@ -84,26 +113,45 @@ export function DocumentContent({
 				);
 
 			case DOCUMENT_STATUS.PENDING_CORRECTION:
+			case CUSTOMER_DATA_STATUS.VALIDATED:
 				return (
-					<Button variant="outline" onClick={onReturnToClient}>
+					<Button variant="outline" onClick={() => onStatusChange(DOCUMENT_STATUS.PENDING_CORRECTION, documents[currentStep])}>
 						Solicitar Ajustes
 					</Button>
 				);
 
 			case DOCUMENT_STATUS.PENDING_PROTOCOL:
+				return <Button onClick={() => onStatusChange(DOCUMENT_STATUS.PROTOCOLED_PENDING, documents[currentStep])}>Protocolar</Button>;
+
+			case DOCUMENT_STATUS.PROTOCOLED_PENDING:
+			case DOCUMENT_STATUS.PROTOCOLED_APPROVED:
+			case DOCUMENT_STATUS.PROTOCOLED_REJECTED:
+			case DOCUMENT_STATUS.PROTOCOLED_APPEAL:
+				return null;
+
+			case CUSTOMER_DATA_STATUS.PENDING_SUBMISSION:
 				return (
-					<Button onClick={onConcludeAnalysis}>
-						Protocolar
-					</Button>
+					<Button onClick={() => onStatusChange(DOCUMENT_STATUS.PENDING_ANALYSIS, documents[currentStep])}>Analisar</Button>
 				);
 
+			case CUSTOMER_DATA_STATUS.PENDING_ANALYSIS:
+			case CUSTOMER_DATA_STATUS.PENDING_CORRECTION:
+				return (
+					<>
+						<Button variant="outline" onClick={() => onStatusChange(DOCUMENT_STATUS.PENDING_CORRECTION, documents[currentStep])}>
+							Solicitar Ajustes
+						</Button>
+						<Button onClick={() => onStatusChange(CUSTOMER_DATA_STATUS.VALIDATED, documents[currentStep])}>Validar</Button>
+					</>
+				);
+			
 			default:
 				return null;
 		}
 	};
 
 	return (
-		<div className={`flex ${currentStep === 0 ? 'md:w-6/12' : 'md:w-4/12'} flex-col p-4 pr-0 w-full`}>
+		<div className="flex flex-col w-full justify-start">
 			<header className="mb-4">
 				<h2 className="text-lg font-semibold">
 					Verificar {documents[currentStep]?.name}
@@ -112,24 +160,19 @@ export function DocumentContent({
 
 			<ScrollArea className="flex-grow">
 				{currentStep === 0 ? (
-					<ClientForm clientData={clientData} setClientData={setClientData} />
-					) : (
+					<ClientForm clientData={clientData} setClientData={setClientData} customer={customer} onObservationChange={(value: string) => {
+						setObservations(value);
+					}} />
+				) : (
 					<DocumentVerification
 						currentDocument={documents[currentStep]}
-						checkedItems={checkedItems[currentStep]}
-						observation={observations[currentStep]}
-						onCheckChange={(item: string, checked: boolean) => {
-							setCheckedItems((prev) => ({
-								...prev,
-								[currentStep]: { ...prev[currentStep], [item]: checked },
-							}));
+						checkedItems={checkedItems}
+						observation={observations}
+						onCheckChange={(item: Checklist, checked: boolean) => {
+							setCheckedItems(item, checked);
 						}}
 						onObservationChange={(value: string) => {
-							setObservations((prev) => {
-								const newObservations = [...prev];
-								newObservations[currentStep] = value;
-								return newObservations;
-							});
+							setObservations(value);
 						}}
 						onDownload={handleDownload}
 					/>
@@ -137,21 +180,55 @@ export function DocumentContent({
 			</ScrollArea>
 
 			<Separator className="my-4" />
-
+			
 			<footer className="flex flex-col items-stretch sm:flex-row sm:justify-between">
 				<div className="mb-2 flex-1 sm:mb-0">
-					<Select value={status} onValueChange={onStatusChange}>
+					<Select value={status} onValueChange={(value) => onStatusChange(value as DOCUMENT_STATUS | CUSTOMER_DATA_STATUS, documents[currentStep])}>
 						<SelectTrigger className="w-[200px]">
 							<SelectValue placeholder="Selecione o status" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="Documentos Pendentes">Documentos Pendentes</SelectItem>
-							<SelectItem value="Pendente de Analise">Pendente de Analise</SelectItem>
-							<SelectItem value="Aguardando Correção">Aguardando Correção</SelectItem>
-							<SelectItem value="Pendente de Protocolo">Pendente de Protocolo</SelectItem>
-							<SelectItem value="Protocolado Deferido">Protocolado Deferido</SelectItem>
-							<SelectItem value="Protocolado Indeferido">Protocolado Indeferido</SelectItem>
-							<SelectItem value="Protocolado Recursal">Protocolado Recursal</SelectItem>
+							{currentStep === 0 && (
+								<>
+									<SelectItem value={CUSTOMER_DATA_STATUS.PENDING_SUBMISSION}>
+										Aguardando Envio
+									</SelectItem>
+									<SelectItem value={CUSTOMER_DATA_STATUS.PENDING_ANALYSIS}>
+										Pendente de Análise
+									</SelectItem>
+									<SelectItem value={CUSTOMER_DATA_STATUS.PENDING_CORRECTION}>
+										Aguardando Correção
+									</SelectItem>
+									<SelectItem value={CUSTOMER_DATA_STATUS.VALIDATED}>
+										Validado
+									</SelectItem>
+								</>
+							)}
+							{currentStep !== 0 && <>
+							<SelectItem value={DOCUMENT_STATUS.PENDING_DOCUMENTS}>
+								Documentos Pendentes
+							</SelectItem>
+							<SelectItem value={DOCUMENT_STATUS.PENDING_ANALYSIS}>
+								Pendente de Análise
+							</SelectItem>
+							<SelectItem value={DOCUMENT_STATUS.PENDING_CORRECTION}>
+								Aguardando Correção
+							</SelectItem>
+							<SelectItem value={DOCUMENT_STATUS.PENDING_PROTOCOL}>
+								Pendente de Protocolo
+							</SelectItem>
+							<SelectItem value={DOCUMENT_STATUS.PROTOCOLED_PENDING}>
+								Protocolado Aguardando
+							</SelectItem>
+							<SelectItem value={DOCUMENT_STATUS.PROTOCOLED_APPROVED}>
+								Protocolado Deferido
+							</SelectItem>
+							<SelectItem value={DOCUMENT_STATUS.PROTOCOLED_REJECTED}>
+								Protocolado Indeferido
+							</SelectItem>
+							<SelectItem value={DOCUMENT_STATUS.PROTOCOLED_APPEAL}>
+								Protocolado Recursal
+							</SelectItem></>}
 						</SelectContent>
 					</Select>
 				</div>

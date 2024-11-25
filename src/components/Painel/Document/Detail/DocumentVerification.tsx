@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Document } from "./DocumentsDetails";
+import type { Checklist, Document } from "./DocumentsDetails";
 
 interface DocumentVerificationProps {
 	currentDocument: Document;
-	checkedItems: Record<string, boolean>;
+	checkedItems: Checklist[];
 	observation: string;
-	onCheckChange: (item: string, checked: boolean) => void;
+	onCheckChange: (item: Checklist, checked: boolean) => void;
 	onObservationChange: (value: string) => void;
 	onDownload: () => void;
 }
@@ -35,16 +35,16 @@ export function DocumentVerification({
 
 			<p>Por favor, verifique se o documento está válido:</p>
 
-			{currentDocument.checkItems.map((item) => (
-				<div key={item} className="mb-2 flex items-center space-x-2">
+			{currentDocument?.checklist?.map((item) => (
+				<div key={item.name} className="mb-2 flex items-center space-x-2">
 					<Checkbox
-						id={item}
-						checked={checkedItems[item] || false}
+						id={item.name}
+						checked={checkedItems?.find((_item) => _item.name === item.name)?.value || false}
 						onCheckedChange={(checked) =>
 							onCheckChange(item, checked as boolean)
 						}
 					/>
-					<Label htmlFor={item}>{item}</Label>
+					<Label htmlFor={item.name}>{item.description}</Label>
 				</div>
 			))}
 

@@ -81,7 +81,7 @@ export function PDFViewer({ pdfUrl }: PDFViewerProps) {
             renderAnnotationLayer={true}
             className="max-w-full"
             scale={1}
-            width={Math.min(window.innerWidth - 220, 800)}
+            width={Math.min(window.innerWidth - 200, 700)}
           />
         </Document>
       </div>
