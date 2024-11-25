@@ -1,24 +1,11 @@
 'use client';
 import { useState } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
-
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
-}
 
 interface PDFViewerProps {
   pdfUrl: string;
 }
 
 export function PDFViewer({ pdfUrl }: PDFViewerProps) {
-  const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-
   if (!pdfUrl) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-neutral-800 text-neutral-400 w-full">
@@ -42,49 +29,20 @@ export function PDFViewer({ pdfUrl }: PDFViewerProps) {
     );
   }
 
-  function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
-    setNumPages(numPages);
-  }
-
   return (
     <div className="flex flex-col h-full w-full max-w-[calc(100vw-100px)] overflow-hidden">
-      <div className="flex justify-between items-center p-4 bg-neutral-800 rounded-lg">
-        <button 
-          type="button"
-          onClick={() => setPageNumber(prev => Math.max(prev - 1, 1))}
-          disabled={pageNumber <= 1}
-          className="px-4 py-2 bg-blue-600 rounded disabled:opacity-50"
-        >
-          Anterior
-        </button>
-        <span className="text-white">
-          Página {pageNumber} de {numPages}
-        </span>
-        <button 
-          type="button"
-          onClick={() => setPageNumber(prev => Math.min(prev + 1, numPages))}
-          disabled={pageNumber >= numPages}
-          className="px-4 py-2 bg-blue-600 rounded disabled:opacity-50"
-        >
-          Próxima
-        </button>
-      </div>
-      <div className="flex-1 overflow-auto p-2">
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          className="flex justify-center"
-        >
-          <Page 
-            pageNumber={pageNumber} 
-            renderTextLayer={true}
-            renderAnnotationLayer={true}
-            className="max-w-full"
-            scale={1}
-            width={Math.min(window.innerWidth - 200, 700)}
-          />
-        </Document>
-      </div>
+      <object
+        data={pdfUrl}
+        type="application/pdf"
+        className="w-full h-full"
+      >
+        <p>
+          Seu navegador não suporta a visualização de PDF.{' '}
+          <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
+            Clique aqui para baixar
+          </a>
+        </p>
+      </object>
     </div>
   );
 }
