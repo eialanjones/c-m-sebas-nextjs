@@ -11,7 +11,7 @@ interface ClientFormProps {
 	clientData: ClientData;
 	setClientData: Dispatch<SetStateAction<ClientData>>;
 	customer?: Customer;
-	onObservationChange: (value: string) => void;
+	onObservationChange?: (value: string) => void;
 }
 
 export function ClientForm({ clientData, setClientData, customer, onObservationChange }: ClientFormProps) {
@@ -39,7 +39,7 @@ export function ClientForm({ clientData, setClientData, customer, onObservationC
 				<Textarea
 					id="observations"
 					value={customer?.dataObservation}
-					onChange={(e) => onObservationChange(e.target.value)}
+					onChange={(e) => onObservationChange?.(e.target.value)}
 					placeholder="Insira suas observações aqui..."
 				/>
 			</div>

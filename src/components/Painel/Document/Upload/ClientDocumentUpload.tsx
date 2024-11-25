@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { DocumentProgress } from "../Detail/DocumentProgress";
 import { ClientUploadContent } from "./ClientUploadContent";
 import type { Document, ClientData } from "../Detail/DocumentsDetails";

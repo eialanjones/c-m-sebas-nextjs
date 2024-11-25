@@ -4,7 +4,6 @@ import {
 } from "@uploadthing/react";
 
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
-import axios from "axios";
 
 const BuildUploadButton = generateUploadButton<OurFileRouter>();
 const BuildUploadDropzone = generateUploadDropzone<OurFileRouter>();
@@ -28,7 +27,7 @@ export const UploadButton = ({
 				if (isUploading) return "Enviando...";
 				return "Enviar arquivo";
 			},
-			allowedContent: ({ ready, fileTypes, isUploading }) => {
+			allowedContent: ({ ready, isUploading }) => {
 				if (!ready) return "Verificando tipos de arquivo permitidos...";
 				if (isUploading) return "Enviando arquivo...";
 				return null;
@@ -47,6 +46,7 @@ export const UploadDropzone = ({
 		onClientUploadComplete={(res) => {
 			onClientUploadComplete?.(res);
 		}}
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		onUploadError={(error: any) => {
 			onUploadError?.(error);
 		}}
@@ -60,7 +60,7 @@ export const UploadDropzone = ({
 				if (isUploading) return "Enviando...";
 				return "Enviar arquivo";
 			},
-			allowedContent: ({ ready, fileTypes, isUploading }) => {
+			allowedContent: ({ ready, isUploading }) => {
 				if (!ready) return "Verificando tipos de arquivo permitidos...";
 				if (isUploading) return "Enviando arquivo...";
 				return null;

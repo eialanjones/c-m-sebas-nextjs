@@ -6,9 +6,9 @@ import { Separator } from "@/components/ui/separator";
 import { ClientForm } from "../Detail/ClientForm";
 import { FileUpload } from "./FileUpload";
 import type { Document, ClientData } from "../Detail/DocumentsDetails";
-import { useState, type Dispatch, type SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type { ClientUploadedFileData } from "uploadthing/types";
-import { Customer } from "@/types/customer";
+import type { Customer } from "@/types/customer";
 
 interface ClientUploadContentProps {
 	currentStep: number;

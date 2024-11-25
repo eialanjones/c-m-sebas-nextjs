@@ -1,4 +1,4 @@
-import { AlertCircleIcon, Check, CircleAlert, Dot } from "lucide-react";
+import { Check, CircleAlert } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Document } from "./DocumentsDetails";
 

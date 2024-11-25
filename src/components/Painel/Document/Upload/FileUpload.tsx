@@ -1,6 +1,6 @@
 "use client";
 
-import { Dot, File, Trash2, X } from "lucide-react";
+import { Dot, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UploadDropzone } from "@/utils/uploadthing";
 import type { ClientUploadedFileData } from "uploadthing/types";

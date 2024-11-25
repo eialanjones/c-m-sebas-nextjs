@@ -8,7 +8,7 @@ export default function LoginPage() {
 	const router = useRouter();
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
-	const { data: session, status } = useSession()
+	const { data: session } = useSession()
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();

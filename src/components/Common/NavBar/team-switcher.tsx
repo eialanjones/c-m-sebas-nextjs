@@ -3,12 +3,6 @@
 import * as React from "react";
 import { Command } from "lucide-react";
 
-import {
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
-} from "@/components/ui/sidebar";
-
 export function TeamSwitcher() {
 	return (
 		<div className="flex items-center gap-2">

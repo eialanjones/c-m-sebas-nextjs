@@ -11,7 +11,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Clock, ClockAlert, Eye, File, FileMinus } from "lucide-react"
+import { Clock, ClockAlert, Eye, FileMinus } from "lucide-react"
 
 export default function Dashboard() {
   return (
