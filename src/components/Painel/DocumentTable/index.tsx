@@ -54,7 +54,7 @@ export default function AdvancedDocumentTable() {
     if (!customers) return []
     
     return customers.filter(doc => {
-      const name = doc.data.find(field => field.name === 'client_name')?.value || ''
+      const name = doc?.data?.find(field => field.name === 'client_name')?.value || ''
       const requestDate = new Date(doc.createdAt)
       const sendDate = new Date(doc.sendedAt)
       
@@ -204,7 +204,7 @@ export default function AdvancedDocumentTable() {
                   <Eye className="h-4 w-4" />
                 </Button>
               </TableCell>
-              <TableCell>{doc.data.find(field => field.name === 'client_name')?.value || ''}</TableCell>
+              <TableCell>{doc?.data?.find(field => field.name === 'client_name')?.value || ''}</TableCell>
               <TableCell>{format(new Date(doc.createdAt), "dd/MM/yyyy")}</TableCell>
               <TableCell>{format(new Date(doc.sendedAt), "dd/MM/yyyy")}</TableCell>
               <TableCell>{formatTimeElapsed(doc.statusUpdatedAt)}</TableCell>
