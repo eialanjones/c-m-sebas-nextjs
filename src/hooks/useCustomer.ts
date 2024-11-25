@@ -2,9 +2,9 @@ import useSWR from 'swr'
 import type { Customer } from '@/types/customer'
 import { baseFetch } from '@/utils/api'
 
-export function useCustomer(id: string) {
+export function useCustomer({userId, customerId}: {userId?: string, customerId?: string}) {
   const { data, error, isLoading, mutate } = useSWR<Customer>(
-    id ? `/customers/${id}` : null,
+    userId ? '/customers/by-user' : customerId ? `/customers/${customerId}` : null,
     baseFetch
   )
 

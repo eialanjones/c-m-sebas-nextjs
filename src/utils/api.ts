@@ -13,6 +13,9 @@ export default api;
 
 export const clientApi = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL,
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+    },
   });
   
   // Add same interceptor for clientApi if needed
@@ -30,6 +33,7 @@ export const baseFetch = async (url: string, options = {}) => {
   const token = localStorage.getItem('access_token');
   const headers = {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {

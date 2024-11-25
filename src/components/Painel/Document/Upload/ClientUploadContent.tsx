@@ -7,14 +7,16 @@ import { ClientForm } from "../Detail/ClientForm";
 import { FileUpload } from "./FileUpload";
 import type { Document, ClientData } from "../Detail/DocumentsDetails";
 import { useState, type Dispatch, type SetStateAction } from "react";
+import type { ClientUploadedFileData } from "uploadthing/types";
 
 interface ClientUploadContentProps {
 	currentStep: number;
 	currentDocument: Document;
 	clientData: ClientData;
 	setClientData: Dispatch<SetStateAction<ClientData>>;
-	onFileUpload: (files: FileList | null, documentId: number) => void;
-	uploadedFiles: File[];
+	onFileUpload: (files: ClientUploadedFileData<{ uploadedBy: string; }>[]) => void;
+	uploadedFiles: Document[];
+	onRemoveFile: (file: Document) => void;
 	onSubmit: () => void;
 }
 
@@ -25,17 +27,16 @@ export function ClientUploadContent({
 	setClientData,
 	onFileUpload,
 	uploadedFiles,
+	onRemoveFile,
 	onSubmit,
 }: ClientUploadContentProps) {
-  const [documents, setDocuments] = useState<Document[]>([]);
-
 	return (
-		<div className="flex w-9/12 flex-col p-4 pr-0">
+		<div className="flex w-full md:w-6/12 flex-col p-4 pr-0">
 			<header className="mb-4">
 				<h2 className="text-lg font-semibold">
 					{currentStep === 0
 						? "Seus Dados"
-						: `Upload - ${currentDocument?.name}`}
+						: `Upload - ${currentDocument?.description}`}
 				</h2>
 			</header>
 
@@ -44,10 +45,13 @@ export function ClientUploadContent({
 					<ClientForm clientData={clientData} setClientData={setClientData} />
 				) : (
 					<FileUpload
-						documentId={currentDocument?.id}
-						onFileUpload={onFileUpload}
+						onFileUpload={(files) => {
+							onFileUpload(files);
+						}}
 						uploadedFiles={uploadedFiles}
-						checkItems={currentDocument?.checkItems || []}
+						onRemoveFile={onRemoveFile}
+						checkItems={currentDocument?.checklist || []}
+						clientSide={true}
 					/>
 				)}
 			</ScrollArea>
@@ -56,7 +60,7 @@ export function ClientUploadContent({
 
 			<footer className="flex justify-end space-x-2">
 				<Button onClick={onSubmit}>
-					{currentStep === documents.length - 1 ? "Finalizar Envio" : "Salvar"}
+					{currentStep === uploadedFiles.length - 1 ? "Finalizar Envio" : "Salvar"}
 				</Button>
 			</footer>
 		</div>

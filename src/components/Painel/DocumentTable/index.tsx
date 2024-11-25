@@ -28,6 +28,7 @@ import { format } from "date-fns"
 import { Card } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
 import { useCustomers } from '@/hooks/useCustomers'
+import { differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns'
 
 type FilterState = {
   name: string
@@ -53,7 +54,7 @@ export default function AdvancedDocumentTable() {
     if (!customers) return []
     
     return customers.filter(doc => {
-      const name = doc.data.name || ''
+      const name = doc.data.find(field => field.name === 'nomeCliente')?.value || ''
       const requestDate = new Date(doc.createdAt)
       const sendDate = new Date(doc.sendedAt)
       
@@ -74,8 +75,27 @@ export default function AdvancedDocumentTable() {
     setCurrentPage(1)
   }
 
-  const statusOptions = customers ? Array.from(new Set(customers.map(doc => doc.status))) : []
+  const statusOptions = customers 
+    ? Array.from(new Set(customers.map(doc => DOCUMENT_STATUS_METADATA[doc.status as DOCUMENT_STATUS].description))) 
+    : []
   const router = useRouter()
+
+  function formatTimeElapsed(statusUpdatedAt: string): string {
+    const now = new Date()
+    const statusDate = new Date(statusUpdatedAt)
+    
+    const minutesDiff = differenceInMinutes(now, statusDate)
+    const hoursDiff = differenceInHours(now, statusDate)
+    const daysDiff = differenceInDays(now, statusDate)
+
+    if (daysDiff > 0) {
+      return `${daysDiff} dia${daysDiff === 1 ? '' : 's'}`
+    }
+    if (hoursDiff > 0) {
+      return `${hoursDiff} hora${hoursDiff === 1 ? '' : 's'}`
+    }
+    return `${minutesDiff} minuto${minutesDiff === 1 ? '' : 's'}`
+  }
 
   if (isLoading) {
     return (
@@ -184,16 +204,16 @@ export default function AdvancedDocumentTable() {
                   <Eye className="h-4 w-4" />
                 </Button>
               </TableCell>
-              <TableCell>{doc.data.name}</TableCell>
+              <TableCell>{doc.data.find(field => field.name === 'nomeCliente')?.value || ''}</TableCell>
               <TableCell>{format(new Date(doc.createdAt), "dd/MM/yyyy")}</TableCell>
               <TableCell>{format(new Date(doc.sendedAt), "dd/MM/yyyy")}</TableCell>
-              <TableCell>{doc.lastStatusUpdatedAt}</TableCell>
+              <TableCell>{formatTimeElapsed(doc.statusUpdatedAt)}</TableCell>
               <TableCell>
                 <span className={`px-2 py-1 rounded-full text-xs font-semibold
-                  ${doc.status === 'Documentos Pendentes' ? 'bg-yellow-200 text-yellow-800' :
-                    doc.status === 'Em Processamento' ? 'bg-blue-200 text-blue-800' :
+                  ${doc.status === DOCUMENT_STATUS.PENDING_DOCUMENTS ? 'bg-yellow-200 text-yellow-800' :
+                    doc.status === DOCUMENT_STATUS.PENDING_ANALYSIS ? 'bg-blue-200 text-blue-800' :
                     'bg-green-200 text-green-800'}`}>
-                  {doc.status}
+                  {DOCUMENT_STATUS_METADATA[doc.status as DOCUMENT_STATUS].description}
                 </span>
               </TableCell>
             </TableRow>
@@ -226,3 +246,41 @@ export default function AdvancedDocumentTable() {
     </Card>
   )
 }
+
+export enum DOCUMENT_STATUS {
+  PENDING_DOCUMENTS = 'PENDING_DOCUMENTS',
+  PENDING_ANALYSIS = 'PENDING_ANALYSIS',
+  PENDING_CORRECTION = 'PENDING_CORRECTION',
+  PENDING_PROTOCOL = 'PENDING_PROTOCOL',
+  PROTOCOLED_PENDING = 'PROTOCOLED_PENDING',
+  PROTOCOLED_APPROVED = 'PROTOCOLED_APPROVED',
+  PROTOCOLED_REJECTED = 'PROTOCOLED_REJECTED',
+  PROTOCOLED_APPEAL = 'PROTOCOLED_APPEAL',
+}
+
+export const DOCUMENT_STATUS_METADATA = {
+  [DOCUMENT_STATUS.PENDING_DOCUMENTS]: {
+    description: 'Documentos Pendentes',
+  },
+  [DOCUMENT_STATUS.PENDING_ANALYSIS]: {
+    description: 'Pendente de Análise',
+  },
+  [DOCUMENT_STATUS.PENDING_CORRECTION]: {
+    description: 'Aguardando Correção',
+  },
+  [DOCUMENT_STATUS.PENDING_PROTOCOL]: {
+    description: 'Pendente de Protocolo',
+  },
+  [DOCUMENT_STATUS.PROTOCOLED_PENDING]: {
+    description: 'Protocolado, Aguardando Decisão',
+  },
+  [DOCUMENT_STATUS.PROTOCOLED_APPROVED]: {
+    description: 'Protocolado, Deferido',
+  },
+  [DOCUMENT_STATUS.PROTOCOLED_REJECTED]: {
+    description: 'Protocolado, Indeferido',
+  },
+  [DOCUMENT_STATUS.PROTOCOLED_APPEAL]: {
+    description: 'Protocolado, Em Recurso',
+  },
+} as const;

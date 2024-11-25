@@ -24,7 +24,7 @@ export default function UsersPage() {
 	});
 
 	return (
-		<div className="p-6 space-y-6 w-full">
+		<div className="p-1 md:p-6 space-y-6 w-full">
 			<div className="flex justify-between items-center">
 				<h1 className="text-2xl font-bold">Usuários</h1>
 				<Button onClick={() => setIsDialogOpen(true)}>

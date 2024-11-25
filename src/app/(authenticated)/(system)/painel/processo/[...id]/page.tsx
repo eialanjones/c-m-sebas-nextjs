@@ -13,11 +13,12 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { useParams } from "next/navigation";
 import { useCustomer } from "@/hooks/useCustomer";
+import { useSession } from "next-auth/react";
 
 export default function DocumentPage() {
 	const { id } = useParams();
 	const customerId = Array.isArray(id) ? id[0] : id;
-	const { customer, isLoading } = useCustomer(customerId??'');
+	const { customer, isLoading } = useCustomer({customerId: customerId??''});
 
 	if (isLoading) {
 		return (
@@ -30,7 +31,7 @@ export default function DocumentPage() {
 	}
 
 	return (
-		<SidebarInset>
+		<SidebarInset className="w-full">
 			<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
 				<div className="flex items-center gap-2 px-4">
 					<SidebarTrigger className="-ml-1" />
@@ -46,13 +47,13 @@ export default function DocumentPage() {
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className="hidden md:block" />
 							<BreadcrumbItem>
-								<BreadcrumbPage>{customer?.data?.name || id}</BreadcrumbPage>
+								<BreadcrumbPage>{customer?.data?.find(field => field.name === 'nomeCliente')?.value || id}</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>
 				</div>
 			</header>
-			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+			<div className="flex flex-1 flex-col gap-4 md:p-4 p-2">
 				<DocumentViewer customer={customer} />
 			</div>
 		</SidebarInset>

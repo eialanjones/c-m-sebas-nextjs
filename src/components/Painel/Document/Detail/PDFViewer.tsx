@@ -1,10 +1,15 @@
+'use client';
 import { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Configuração necessária para o worker do PDF
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+if (typeof window !== 'undefined') {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+  ).toString();
+}
 
 interface PDFViewerProps {
   pdfUrl: string;
@@ -42,8 +47,8 @@ export function PDFViewer({ pdfUrl }: PDFViewerProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center p-4 bg-neutral-800">
+    <div className="flex flex-col h-full w-full max-w-[calc(100vw-100px)] overflow-hidden">
+      <div className="flex justify-between items-center p-4 bg-neutral-800 rounded-lg">
         <button 
           type="button"
           onClick={() => setPageNumber(prev => Math.max(prev - 1, 1))}
@@ -56,6 +61,7 @@ export function PDFViewer({ pdfUrl }: PDFViewerProps) {
           Página {pageNumber} de {numPages}
         </span>
         <button 
+          type="button"
           onClick={() => setPageNumber(prev => Math.min(prev + 1, numPages))}
           disabled={pageNumber >= numPages}
           className="px-4 py-2 bg-blue-600 rounded disabled:opacity-50"
@@ -63,7 +69,7 @@ export function PDFViewer({ pdfUrl }: PDFViewerProps) {
           Próxima
         </button>
       </div>
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto p-2">
         <Document
           file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -73,6 +79,9 @@ export function PDFViewer({ pdfUrl }: PDFViewerProps) {
             pageNumber={pageNumber} 
             renderTextLayer={true}
             renderAnnotationLayer={true}
+            className="max-w-full"
+            scale={1}
+            width={Math.min(window.innerWidth - 220, 800)}
           />
         </Document>
       </div>

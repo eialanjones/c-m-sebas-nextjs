@@ -4,6 +4,7 @@ import {
 } from "@uploadthing/react";
 
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
+import axios from "axios";
 
 const BuildUploadButton = generateUploadButton<OurFileRouter>();
 const BuildUploadDropzone = generateUploadDropzone<OurFileRouter>();
@@ -46,8 +47,11 @@ export const UploadDropzone = ({
 		onClientUploadComplete={(res) => {
 			onClientUploadComplete?.(res);
 		}}
-		onUploadError={(error: Error) => {
+		onUploadError={(error: any) => {
 			onUploadError?.(error);
+		}}
+		config={{
+			mode: "auto",
 		}}
     content={{
 			label: () => "Clique ou arraste para fazer upload",

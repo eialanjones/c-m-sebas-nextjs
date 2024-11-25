@@ -1,110 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DocumentProgress } from "../Detail/DocumentProgress";
 import { ClientUploadContent } from "./ClientUploadContent";
 import type { Document, ClientData } from "../Detail/DocumentsDetails";
-import { baseFetch } from "@/utils/api";
+import { clientApi } from "@/utils/api";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
-import type { CustomerBase } from "@/types/customer_base";
+import type { ClientUploadedFileData } from "uploadthing/types";
+import { useCustomer } from "@/hooks/useCustomer";
 
 export default function ClientDocumentUpload() {
 	const [documents, setDocuments] = useState<Document[]>([]);
-	const [customerBase, setCustomerBase] = useState<CustomerBase | null>(null);
+	const [fileToDelete, setFileToDelete] = useState<Document | null>(null);
 	const { data: session } = useSession();
 	const { toast } = useToast();
 	
-	const [uploadedFiles, setUploadedFiles] = useState<Record<number, File[]>>({});
 	const [currentStep, setCurrentStep] = useState(0);
 
-	const [clientData, setClientData] = useState<ClientData>({
-		nomeCliente: "",
-		cnpj: "",
-		email: "",
-		responsavel: "",
-		siscebas: {
-			login: "",
-			senha: "",
-		},
-		numeroCNES: "",
+	const { customer } = useCustomer({userId: session?.user?.id ?? ''});
+
+	const [clientData, setClientData] = useState<ClientData>(customer?.data ?? []);
+
+	const completedSteps = documents.map((doc, index) => {
+		if (index === 0 && Object.values(customer?.data ?? {}).length === Object.keys(clientData).length) return true;
+		return !!doc.url;
 	});
 
-	// Add this computed value for completedSteps
-	const completedSteps = documents.map((doc) => {
-		if (currentStep === 0) return true; // First step (client data) is always considered complete
-		return uploadedFiles[doc.id]?.length > 0; // Check if there are uploaded files for this document
-	});
-
-	// Fetch the appropriate customer base based on user type
 	useEffect(() => {
-		const fetchCustomerBase = async () => {
-			try {
-				const bases = await baseFetch('/customer-bases');
-				const userTypeMap: Record<string, string> = {
-					'HEALTH_PROMOTION': 'saude-promocao',
-					'SUS': 'saude-60sus',
-					'ASSISTANCE': 'assistencia',
-					'ILPI': 'ilpi',
-					'CT': 'cts'
-				};
-				
-				const baseType = userTypeMap[session?.user?.userType || ''];
-				const matchingBase = bases.find((base: CustomerBase) => base.name === baseType);
-				
-				if (matchingBase) {
-					setCustomerBase(matchingBase);
-					setDocuments(matchingBase.structure.documents);
-				}
-			} catch (error) {
-				console.error('Error fetching customer base:', error);
-				toast({
-					title: "Erro",
-					description: "Não foi possível carregar a estrutura de documentos.",
-					variant: "destructive",
-				});
-			}
-		};
-
-		if (session?.user) {
-			fetchCustomerBase();
+		if(customer){
+			setDocuments(customer.documents);
+			setClientData(customer.data);
 		}
-	}, [session?.user, toast]);
-
-	const handleFileUpload = (files: FileList | null, documentId: number) => {
-		if (!files) return;
-
-		setUploadedFiles((prev) => ({
-			...prev,
-			[documentId]: Array.from(files),
-		}));
-	};
+	}, [customer]);
 
 	const handleSubmit = async () => {
 		try {
-			if (!customerBase) {
-				throw new Error("Base de cliente não carregada");
+			const payload = {
+				data: clientData,
+				userId: session?.user?.id,
+				documents: documents,
+			};
+
+			if (fileToDelete) {
+				await clientApi.delete(`/customers/${customer?.id}/files/${fileToDelete.fileKey}`);
+				setFileToDelete(null);
 			}
 
-			const formData = new FormData();
-			
-			// Add client data
-			formData.append('data', JSON.stringify(clientData));
-			formData.append('baseId', customerBase.id.toString());
-			
-			// Add documents
-			for (const [documentId, files] of Object.entries(uploadedFiles)) {
-				for (const file of files) {
-					formData.append(`documents[${documentId}]`, file);
-				}
-			}
+			const response = await clientApi.patch(`/customers/${customer?.id}`, payload);
 
-			const response = await fetch('/api/customers', {
-				method: 'POST',
-				body: formData,
-			});
-
-			if (!response.ok) {
+			if (response.status !== 200) {
 				throw new Error('Falha ao enviar os dados');
 			}
 
@@ -122,8 +67,32 @@ export default function ClientDocumentUpload() {
 		}
 	};
 
+	const onFileUpload = (files: ClientUploadedFileData<{ uploadedBy: string; }>[]) => {
+		const newDocument: Document = {
+			...documents[currentStep],
+			url: files[0]?.url || '',
+			fileKey: files[0]?.key || '',
+		};
+		
+		setDocuments(prev => prev.map(doc => doc.name === documents[currentStep].name ? newDocument : doc));
+	};
+
+	const onRemoveFile = async (file: Document) => {
+		try {
+			setDocuments(prev => prev.map(doc => doc.name === file.name ? { ...doc, url: "", fileKey: "" } : doc));
+			console.log("file: ", file);
+			setFileToDelete(file);
+		} catch (error) {
+			toast({
+				title: "Erro",
+				description: "Falha ao remover o arquivo. Tente novamente.",
+				variant: "destructive",
+			});
+		}
+	};
+
 	return (
-		<div className="flex h-full">
+		<div className="flex h-full viewbox">
 			<DocumentProgress
 				documents={documents}
 				currentStep={currentStep}
@@ -135,9 +104,10 @@ export default function ClientDocumentUpload() {
 				currentDocument={documents[currentStep]}
 				clientData={clientData}
 				setClientData={setClientData}
-				onFileUpload={handleFileUpload}
-				uploadedFiles={uploadedFiles[documents[currentStep]?.id] || []}
+				onFileUpload={onFileUpload}
+				uploadedFiles={documents.filter(doc => doc.name === documents[currentStep].name)}
 				onSubmit={handleSubmit}
+				onRemoveFile={onRemoveFile}
 			/>
 		</div>
 	);

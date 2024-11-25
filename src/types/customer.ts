@@ -1,11 +1,13 @@
+import type { ClientData, Document } from "@/components/Painel/Document/Detail/DocumentsDetails"
+
 export type Customer = {
     id: number
     baseId: number
-    data: Record<string, string>
-    documents: Record<string, string>
+    data: ClientData
+    documents: Document[]
     userId: number
     status: string
-    lastStatusUpdatedAt: string
+    statusUpdatedAt: string
     sendedAt: string
     createdAt: string
     updatedAt: string

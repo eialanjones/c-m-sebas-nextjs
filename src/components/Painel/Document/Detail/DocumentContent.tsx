@@ -6,7 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ClientForm } from "./ClientForm";
 import { DocumentVerification } from "./DocumentVerification";
-import type { ClientData, Document, DocumentStatus } from "./DocumentsDetails";
+import type { ClientData, CUSTOMER_DATA_STATUS, Document } from "./DocumentsDetails";
+import { DOCUMENT_STATUS } from "../../DocumentTable";
 import {
 	Select,
 	SelectContent,
@@ -28,8 +29,8 @@ interface DocumentContentProps {
 	setObservations: Dispatch<SetStateAction<string[]>>;
 	onReturnToClient: () => void;
 	onConcludeAnalysis: () => void;
-	status: DocumentStatus;
-	onStatusChange: (status: DocumentStatus) => void;
+	status: DOCUMENT_STATUS | CUSTOMER_DATA_STATUS;
+	onStatusChange: (status: DOCUMENT_STATUS | CUSTOMER_DATA_STATUS) => void;
 }
 
 export function DocumentContent({
@@ -56,7 +57,7 @@ export function DocumentContent({
 		);
 
 		switch (status) {
-			case "Documentos Pedentes":
+			case DOCUMENT_STATUS.PENDING_DOCUMENTS:
 				return (
 					<>
 						<Button variant="outline" onClick={onReturnToClient}>
@@ -66,7 +67,7 @@ export function DocumentContent({
 					</>
 				);
 
-			case "Pendente de Analise":
+			case DOCUMENT_STATUS.PENDING_ANALYSIS:
 				return (
 					<>
 						<Button variant="outline" onClick={onReturnToClient}>
@@ -82,14 +83,14 @@ export function DocumentContent({
 					</>
 				);
 
-			case "Aguardando Correção":
+			case DOCUMENT_STATUS.PENDING_CORRECTION:
 				return (
 					<Button variant="outline" onClick={onReturnToClient}>
 						Solicitar Ajustes
 					</Button>
 				);
 
-			case "Pendente de Protocolo":
+			case DOCUMENT_STATUS.PENDING_PROTOCOL:
 				return (
 					<Button onClick={onConcludeAnalysis}>
 						Protocolar
@@ -102,7 +103,7 @@ export function DocumentContent({
 	};
 
 	return (
-		<div className={`flex ${currentStep === 0 ? 'w-9/12' : 'w-4/12'} flex-col p-4 pr-0`}>
+		<div className={`flex ${currentStep === 0 ? 'md:w-6/12' : 'md:w-4/12'} flex-col p-4 pr-0 w-full`}>
 			<header className="mb-4">
 				<h2 className="text-lg font-semibold">
 					Verificar {documents[currentStep]?.name}
@@ -144,7 +145,7 @@ export function DocumentContent({
 							<SelectValue placeholder="Selecione o status" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="Documentos Pedentes">Documentos Pedentes</SelectItem>
+							<SelectItem value="Documentos Pendentes">Documentos Pendentes</SelectItem>
 							<SelectItem value="Pendente de Analise">Pendente de Analise</SelectItem>
 							<SelectItem value="Aguardando Correção">Aguardando Correção</SelectItem>
 							<SelectItem value="Pendente de Protocolo">Pendente de Protocolo</SelectItem>

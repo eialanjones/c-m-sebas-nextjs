@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { baseFetch } from '@/utils/api'
 import type { User } from '@/types/user'
-import {clientApi} from '@/utils/api'
+import { clientApi } from '@/utils/api'
 
 interface CreateUserData {
   email: string
@@ -13,18 +13,22 @@ interface UpdateUserData {
   email?: string
   password?: string
   userType?: User['userType']
+  active?: boolean
 }
 
 export function useUsers() {
   const { data, error, isLoading, mutate } = useSWR<User[]>(
     '/users',
-    baseFetch
+    baseFetch,
+    {
+      keepPreviousData: true,
+    }
   )
 
   const createUser = async (userData: CreateUserData) => {
     try {
       const response = await clientApi.post('/users', userData)
-      await mutate()
+      await mutate(undefined, { revalidate: true })
       return response.data
     } catch (error) {
       console.error(error)
@@ -34,19 +38,9 @@ export function useUsers() {
 
   const updateUser = async (userId: string, userData: UpdateUserData) => {
     try {
-      const response = await clientApi.put(`/users/${userId}`, userData)
-      await mutate()
+      const response = await clientApi.patch(`/users/${userId}`, userData)
+      await mutate();
       return response.data
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
-  }
-
-  const deleteUser = async (userId: string) => {
-    try {
-      await clientApi.delete(`/users/${userId}`)
-      await mutate() // Revalidate the users list
     } catch (error) {
       console.error(error)
       throw error
@@ -59,7 +53,6 @@ export function useUsers() {
     isError: error,
     mutate,
     createUser,
-    updateUser,
-    deleteUser
+    updateUser
   }
 } 

@@ -3,7 +3,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
 	return (
-		<SidebarProvider>
+		<SidebarProvider className="flex-col md:flex-row">
 			<AppSidebar type="client" />
 			{children}
 		</SidebarProvider>

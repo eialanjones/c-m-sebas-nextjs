@@ -86,3 +86,21 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.viewbox {
+  @apply w-full max-w-full overflow-x-hidden;
+}
+
+@layer utilities {
+  .pdf-container {
+    @apply flex flex-col h-full max-w-full overflow-hidden;
+  }
+  
+  .pdf-viewer {
+    @apply flex-1 relative overflow-hidden;
+  }
+  
+  .pdf-page {
+    @apply max-w-full h-auto object-contain;
+  }
+}
