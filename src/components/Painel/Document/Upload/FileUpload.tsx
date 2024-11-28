@@ -6,6 +6,7 @@ import { UploadDropzone } from "@/utils/uploadthing";
 import type { ClientUploadedFileData } from "uploadthing/types";
 import { PDFViewer } from "../Detail/PDFViewer";
 import type { Document } from "../Detail/DocumentsDetails";
+import { Label } from "@/components/ui/label";
 
 interface FileUploadProps {
 	onFileUpload: (files: ClientUploadedFileData<{ uploadedBy: string; }>[]) => void;
@@ -22,34 +23,35 @@ export function FileUpload({
 	checkItems,
 	clientSide = false,
 }: FileUploadProps) {
+	const pendingCorrections = checkItems.filter(item => !item.value);
+	const hasCorrections = uploadedFiles?.[0]?.observation?.length > 0;
 
 	return (
 		<div className="space-y-4 overflow-auto">
-			{(checkItems.length > 0 && !clientSide) && (
-				<div className="mb-4">
-					<h3 className="font-medium mb-2">Requisitos do documento:</h3>
-					<ul className="list-disc list-inside space-y-1">
-						{checkItems.map((item) => (
-							<li key={item.name} className="text-sm text-gray-600">
-								{item.description}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
-
-			{uploadedFiles?.[0]?.observation?.length > 0 && (
-				<div className="flex justify-start h-full mb-4">
-					<p className="text-sm text-red-600 flex items-center">
-						<Dot className="mr-2" color="red" /> {uploadedFiles?.[0]?.observation}
-					</p>
+			{hasCorrections && clientSide && (
+				<div className="mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
+					<h3 className="font-medium text-red-800 mb-2">Correções necessárias:</h3>
+					{uploadedFiles?.[0]?.observation && (
+						<p className="text-sm text-red-600 mb-2">
+							{uploadedFiles[0].observation}
+						</p>
+					)}
+					{pendingCorrections.length > 0 && (
+						<ul className="list-disc list-inside space-y-1">
+							{pendingCorrections.map((item) => (
+								<li key={item.name} className="text-sm text-red-600">
+									{item.description}
+								</li>
+							))}
+						</ul>
+					)}
 				</div>
 			)}
 
 			{!uploadedFiles?.[0]?.url && <UploadDropzone 
 				endpoint="imageUploader"
 				onClientUploadComplete={onFileUpload}
-			/>}
+				/>}
 
 			{uploadedFiles?.[0]?.url && (
 				<div className="space-y-4">
