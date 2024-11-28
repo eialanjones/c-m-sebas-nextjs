@@ -94,7 +94,14 @@ export default function ClientDocumentUpload() {
 	return (
 		<div className="flex h-full viewbox">
 			<DocumentProgress
-				documents={documents}
+				documents={[{
+					id: 0,
+					name: "Informações Iniciais",
+					description: "Tutorial",
+					url: "",
+					fileKey: "",
+					observation: "",
+				}, ...documents]}
 				currentStep={currentStep}
 				onStepChange={setCurrentStep}
 				completedSteps={completedSteps}

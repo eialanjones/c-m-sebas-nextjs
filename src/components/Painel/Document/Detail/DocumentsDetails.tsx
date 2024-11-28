@@ -24,7 +24,7 @@ export type Checklist = {
 	description: string;
 }
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type SetStateAction } from "react";
 import { DocumentProgress } from "./DocumentProgress";
 import { DocumentContent } from "./DocumentContent";
 import { PDFViewer } from "./PDFViewer";
@@ -47,7 +47,19 @@ export default function DocumentViewer({ customer, mutate }: DocumentViewerProps
 
 	const [currentStep, setCurrentStep] = useState(0);
 	const [clientData, setClientData] = useState<ClientData>(customer?.data ?? []);
-	const [observations, setObservations] = useState<string>("");
+	const [observationsMap, setObservationsMap] = useState<Record<string, string>>(() => {
+		// Initialize with existing observations from customer data
+		const initialMap: Record<string, string> = {};
+		if (customer?.dataObservation) {
+			initialMap.clientData = customer.dataObservation;
+		}
+		for (const doc of customer?.documents ?? []) {
+			if (doc.observation) {
+				initialMap[doc.name] = doc.observation;
+			}
+		}
+		return initialMap;
+	});
 
 	const [status, setStatus] = useState<DOCUMENT_STATUS | CUSTOMER_DATA_STATUS>(
 		(customer?.dataStatus) || 
@@ -72,9 +84,9 @@ export default function DocumentViewer({ customer, mutate }: DocumentViewerProps
 		if(currentStep === 0) {
 			await clientApi.patch(`/customers/${customer?.id}`, {
 				dataStatus: status,
-				dataObservation: observations,
+				dataObservation: observationsMap.clientData || '',
 			});
-		}else{
+		} else {
 			await clientApi.patch(`/customers/${customer?.id}`, {
 				status: status,
 				documents: customer?.documents?.map((doc) => {
@@ -82,10 +94,14 @@ export default function DocumentViewer({ customer, mutate }: DocumentViewerProps
 						return {
 							...doc,
 							status: status,
-							observation: observations?.length > 0 ? observations : null,
+							observation: observationsMap[doc.name] || '',
 						};
 					}
-					return doc;
+					// Mantém as observações dos outros documentos
+					return {
+						...doc,
+						observation: observationsMap[doc.name] || doc.observation || '',
+					};
 				}),
 			});
 		}
@@ -107,12 +123,26 @@ export default function DocumentViewer({ customer, mutate }: DocumentViewerProps
 				value: item.value,
 			})) ?? []);
 
-			setObservations(customer?.documents?.[currentStep]?.observation ?? "");
+			// Inicializa o mapa de observações com todas as observações existentes
+			const newObservationsMap: Record<string, string> = {};
+			
+			// Adiciona a observação dos dados do cliente
+			if (customer.dataObservation) {
+				newObservationsMap.clientData = customer.dataObservation;
+			}
+			
+			// Adiciona as observações de cada documento
+			customer.documents?.forEach((doc) => {
+				if (doc.observation) {
+					newObservationsMap[doc.name] = doc.observation;
+				}
+			});
+
+			setObservationsMap(newObservationsMap);
 		} else {
 			setStatus(customer?.dataStatus || CUSTOMER_DATA_STATUS.PENDING_SUBMISSION);
-			setObservations(customer?.dataObservation ?? "");
 		}
-	}, [customer, currentStep]);
+	}, [customer]);
 
 	const handleCheckChange = async (item: Checklist, checked: boolean) => {
 		setCheckedItems((prev) => {
@@ -154,12 +184,7 @@ export default function DocumentViewer({ customer, mutate }: DocumentViewerProps
 					.fill(0)
 					.map((_, index) => isCurrentStepComplete(index))}
 			/>
-			<div className={'flex flex-col-reverse w-full flex-col p-4 pr-0 w-full self-start'}>
-				{(currentStep !== 0 && customer?.documents?.[currentStep]?.url) && (
-					<div className="flex w-full bg-neutral-700 mt-6">
-						<PDFViewer pdfUrl={customer.documents[currentStep].url} />
-					</div>
-				)}
+			<div className={'flex flex-col w-full flex-col p-4 pr-0 w-full self-start'}>
 				<DocumentContent
 					currentStep={currentStep}
 					documents={customer?.documents ?? []}
@@ -167,12 +192,23 @@ export default function DocumentViewer({ customer, mutate }: DocumentViewerProps
 					setClientData={setClientData}
 					checkedItems={checkedItems}
 					setCheckedItems={handleCheckChange}
-					observations={observations}
-					setObservations={setObservations}
+					observations={currentStep === 0 ? observationsMap.clientData || '' : observationsMap[customer?.documents?.[currentStep]?.name || ''] || ''}
+					setObservations={(value: SetStateAction<string>) => {
+						const newValue = typeof value === 'function' ? value('') : value;
+						setObservationsMap(prev => ({
+							...prev,
+							[currentStep === 0 ? 'clientData' : customer?.documents?.[currentStep]?.name || '']: newValue
+						}));
+					}}
 					status={status}
 					onStatusChange={handleStatusChange}
 					customer={customer}
 				/>
+				{(currentStep !== 0 && customer?.documents?.[currentStep]?.url) && (
+					<div className="flex w-full bg-neutral-700 mt-6 min-h-full">
+						<PDFViewer pdfUrl={customer.documents[currentStep].url} />
+					</div>
+				)}
 			</div>
 		</div>
 	);

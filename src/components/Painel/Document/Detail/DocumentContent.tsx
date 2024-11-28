@@ -151,14 +151,14 @@ export function DocumentContent({
 	};
 
 	return (
-		<div className="flex flex-col w-full justify-start">
+		<div className="flex flex-col w-full h-full">
 			<header className="mb-4">
 				<h2 className="text-lg font-semibold">
 					Verificar {documents[currentStep]?.name}
 				</h2>
 			</header>
 
-			<ScrollArea className="flex-grow">
+			<ScrollArea className="flex-1 min-h-0">
 				{currentStep === 0 ? (
 					<ClientForm clientData={clientData} setClientData={setClientData} customer={customer} onObservationChange={(value: string) => {
 						setObservations(value);
@@ -178,10 +178,9 @@ export function DocumentContent({
 					/>
 				)}
 			</ScrollArea>
-
 			<Separator className="my-4" />
 			
-			<footer className="flex flex-col items-stretch sm:flex-row sm:justify-between">
+			<footer className="flex flex-col items-stretch sm:flex-row sm:justify-between mt-auto">
 				<div className="mb-2 flex-1 sm:mb-0">
 					<Select value={status} onValueChange={(value) => onStatusChange(value as DOCUMENT_STATUS | CUSTOMER_DATA_STATUS, documents[currentStep])}>
 						<SelectTrigger className="w-[200px]">

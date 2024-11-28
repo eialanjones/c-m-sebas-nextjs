@@ -9,6 +9,7 @@ import type { Document, ClientData } from "../Detail/DocumentsDetails";
 import type { Dispatch, SetStateAction } from "react";
 import type { ClientUploadedFileData } from "uploadthing/types";
 import type { Customer } from "@/types/customer";
+import { TutorialContent } from "../Detail/TutorialContent";
 
 interface ClientUploadContentProps {
 	currentStep: number;
@@ -45,12 +46,12 @@ export function ClientUploadContent({
 
 			<ScrollArea className="flex-grow">
 				{currentStep === 0 ? (
+					<TutorialContent />
+				) : currentStep === 1 ? (
 					<ClientForm clientData={clientData} setClientData={setClientData} />
 				) : (
 					<FileUpload
-						onFileUpload={(files) => {
-							onFileUpload(files);
-						}}
+						onFileUpload={onFileUpload}
 						uploadedFiles={uploadedFiles}
 						onRemoveFile={onRemoveFile}
 						checkItems={currentDocument?.checklist || []}

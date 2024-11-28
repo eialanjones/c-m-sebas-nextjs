@@ -39,12 +39,12 @@ export function DocumentProgress({
 							>
 								{doc.observation?.length > 0 ? (
 									<CircleAlert className="h-4 w-4" />
-								) : index < currentStep && completedSteps?.[index] ? (
+								) : (index < currentStep && completedSteps?.[index]) || index === 0 ? (
 									<Check className="h-4 w-4" />
 								) : index === currentStep ? (
 									<CircleAlert className="h-4 w-4" />
 								) : (
-									doc.observation?.length > 0 ? <CircleAlert className="h-4 w-4" color="red" /> : index + 2
+									doc.observation?.length > 0 ? <CircleAlert className="h-4 w-4" color="red" /> : index + 0
 								)}
 							</div>
 							<span className={`${index === currentStep ? "font-semibold" : ""} hidden md:block`}>
